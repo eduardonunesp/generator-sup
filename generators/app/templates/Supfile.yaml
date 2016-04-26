@@ -1,0 +1,52 @@
+---
+version: 0.3
+
+env:
+  NAME: <%= filters.projectName %>
+  IMAGE: <%= filters.dockerImage %>
+
+networks:<% if (filters.createLocalhost) { %>
+  local:
+    hosts:
+      - localhost
+  <% } %><% if (filters.devHost) { %>
+  dev:
+    hosts:
+      - <%= filters.devHost %>
+  <% } %><% if (filters.stageHost) { %>
+  stage:
+    hosts:
+      - <%= filters.stageHost %>
+  <% } %><% if (filters.productionHost) { %>
+  production:
+    hosts:
+      - <%= filters.productionHost %>
+  <% } %><% if (filters.commandsList.length > 0) { %>
+commands:<% } %><% if (filters.commandsList.indexOf('ping') !== -1) { %>
+  ping:
+    desc: Print uname and current date/time.
+    run: uname -a; date
+  <% } %><% if (filters.commandsList.indexOf('upload') !== -1) { %>
+  pre-build:
+    desc: Initialize directory
+    run: mkdir -p /tmp/$IMAGE
+
+  upload:
+    desc: Build Docker image from current directory
+    upload:
+      - src: ./
+        dst: /tmp/$IMAGE
+    script: ./scripts/docker-build.sh
+    once: true
+  <% } %><% if (filters.commandsList.indexOf('run') !== -1) { %>
+  run:
+    desc: Run container
+  <% } %><% if (filters.targetsList.length > 0 && filters.commandsList.length > 0) { %>
+targets:<% if (filters.targetsList.indexOf('deploy') !== -1) { %>
+  deploy:
+    <% if (filters.commandsList.indexOf('ping') !== -1) { %>- ping<% } %>
+    <% if (filters.commandsList.indexOf('upload') !== -1) { %>- pre-build
+    - upload<% } %>
+    <% if (filters.commandsList.indexOf('run') !== -1) { %>- run<% } %>
+  <% } %>
+  <% } %>
